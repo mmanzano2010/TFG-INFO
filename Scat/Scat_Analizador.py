@@ -2,6 +2,7 @@ import json
 import time, datetime
 import re, subprocess
 import gpxpy
+import Funciones
 
 MIN_LEVEL = -100
 INTERVALO_MAX = 5
