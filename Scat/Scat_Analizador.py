@@ -1,7 +1,6 @@
 import json
 import time, datetime
 import re, subprocess
-import Funciones as funciones
 import gpxpy
 
 MIN_LEVEL = -100
@@ -15,10 +14,10 @@ if __name__ == '__main__':
     modelo = 'Samsung'
     modelo_procesador = 'Samsung'
     interfaz = 4
-    bus_usb = funciones.get_interfaz_dispositivo(modelo)
+    bus_usb = Funciones.get_interfaz_dispositivo(modelo)
     bus = '001:' + str(bus_usb)
 
-    comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador], '-u', '-a', bus, '-i', str(interfaz)]
+    comando = ['scat', '-t', Funciones.COMANDO_SEGUN_MODELO[modelo_procesador], '-u', '-a', bus, '-i', str(interfaz)]
     proceso = subprocess.Popen(comando, stdout=subprocess.PIPE)
 
     app_localizacion = 'com.mendhak.gpslogger'
@@ -27,7 +26,7 @@ if __name__ == '__main__':
     archivo_localizacion = fecha + '.gpx'
     localizacion_ruta_archivo = localizacion_ruta_archivo + '/' + archivo_localizacion
     print(f'Archivo:{localizacion_ruta_archivo}')
-    funciones.acceder_paquete(app_localizacion)
+    Funciones.acceder_paquete(app_localizacion)
 
     intervalo = 2
     celdas = []
@@ -64,7 +63,7 @@ if __name__ == '__main__':
                     if match:
                         rsrq = float(match.group(1))
 
-                    geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
+                    geoloc_data_str = Funciones.leer_archivo_android(localizacion_ruta_archivo)
                     gpx = gpxpy.parse(geoloc_data_str)
                     for track in gpx.tracks:
                         for segment in track.segments:
@@ -102,7 +101,7 @@ if __name__ == '__main__':
 
 
     except KeyboardInterrupt:
-        funciones.cerrar_app(app_localizacion)
+        Funciones.cerrar_app(app_localizacion)
         with open('celdas.json', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")

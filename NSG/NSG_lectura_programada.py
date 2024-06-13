@@ -44,11 +44,14 @@ if __name__ == '__main__':
                                 if 'registered' in ele.keys():
 
                                     serving_cell = ele
+                                    earfcn = serving_cell['earfcn']
+
+                                    rsrp = serving_cell['rsrp']
+                                    rsrq = serving_cell['rsrq']
                                     if 'rssi' in serving_cell.keys():
                                         last_rssi = serving_cell['rssi']
                                     elif serving_cell['type'] == 'lte':
-                                        rsrp = serving_cell['rsrp']
-                                        rsrq = serving_cell['rsrq']
+
                                         last_rssi = (BANDWIDTH * rsrp) / rsrq
                                     if len(puntos) != 0:
                                         if (abs(puntos[-1]['rssi'] - serving_cell['rssi'])) > 5:
@@ -67,7 +70,7 @@ if __name__ == '__main__':
                                         print(
                                             'Necesaria una localizacion de referencia con RSSI mayor que ' + str(MIN_RSSI))
                                         print('Desplazate a una localizacion de referencia')
-                                    punto = {'rssi': last_rssi, 'location': last_location, 'time': str(datetime.datetime.now())}
+                                    punto = {'earfcn': earfcn ,'rssi': last_rssi, 'rsrp': rsrp,'rsrq': rsrq,'location': last_location, 'time': str(datetime.datetime.now())}
                                     puntos.append(punto)
 
                             print('****')
