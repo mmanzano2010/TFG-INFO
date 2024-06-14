@@ -1,6 +1,6 @@
 import json
 
-import NSG_Analizador_funciones as funciones
+import nsg_analizador_funciones as funciones
 import time, datetime
 
 

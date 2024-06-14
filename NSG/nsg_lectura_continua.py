@@ -1,7 +1,7 @@
 import json
 import time
 import datetime
-import NSG_Analizador_funciones as funciones
+import nsg_analizador_funciones as funciones
 
 MIN_RSSI = -90
 BANDWIDTH = 50

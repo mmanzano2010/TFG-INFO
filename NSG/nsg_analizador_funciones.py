@@ -33,18 +33,21 @@ def extract_json_objects(text, decoder=JSONDecoder()):
             pos = match + 1
 
 def leer_archivo_android(ruta):
-    # Ejecutar el comando adb para leer el archivo
-    resultado = subprocess.run(['adb', 'shell', 'cat', ruta], capture_output=True, text=True, errors='ignore')
+    """Ejecutar el comando adb para leer el archivo"""
+    resultado = subprocess.run(['adb', 'shell', 'cat', ruta],
+                               capture_output=True, text=True, errors='ignore')
 
     # Devolver el contenido del archivo
     return resultado.stdout
 
 def acceder_paquete(package_name):
+    """Abre la app Android que se mete en la entrada"""
     comando = f"adb shell monkey -p {package_name} -c android.intent.category.LAUNCHER 1"
     result = subprocess.run(comando, shell=True, capture_output=True, text=True)
     return result
 
 def cerrar_app(package_name):
+    """Cierra la app Android que se mete en la entrada"""
     comando = f"adb shell am force-stop {package_name}"
     result = subprocess.run(comando, shell=True, capture_output=True, text=True)
     return result
@@ -60,7 +63,10 @@ def lectura_continua():
         print("**")
         contenido = leer_archivo_android(CONTENIDO)
         contenido = contenido.replace('España','Spain')
-        contenido = contenido.replace('{',' {').replace('}','} _').replace('[',' [').replace(']','] ')
+        contenido = (contenido.replace('{',' {').
+                     replace('}','} _').
+                     replace('[',' [').
+                     replace(']','] '))
         contenido = contenido.splitlines()
         ultimo_contenido = contenido[-10:-1]
         for linea in ultimo_contenido:
@@ -74,7 +80,9 @@ def lectura_continua():
                     datos.append(l)
                     print(l)
                 for elemento in l:
-                    if isinstance(elemento,dict) and 'event' in elemento.keys() and elemento['event'] == 'close':
+                    if (isinstance(elemento,dict) and
+                            'event' in elemento.keys() and
+                            elemento['event'] == 'close'):
                         reading = False
                         print("Tarea finalizada")
                         break
@@ -95,7 +103,10 @@ def lectura_con_apertura():
             print("**")
             contenido = leer_archivo_android(CONTENIDO)
             contenido = contenido.replace('España', 'Spain')
-            contenido = contenido.replace('{', ' {').replace('}', '} _').replace('[', ' [').replace(']', '] ')
+            contenido = (contenido.replace('{', ' {').
+                         replace('}', '} _').
+                         replace('[', ' [').
+                         replace(']', '] '))
             contenido = contenido.splitlines()
             ultimo_contenido = contenido[-10:-1]
             for linea in ultimo_contenido:
@@ -109,7 +120,9 @@ def lectura_con_apertura():
                         datos.append(l)
                         print(l)
                     for elemento in l:
-                        if isinstance(elemento, dict) and 'event' in elemento.keys() and elemento['event'] == 'close':
+                        if (isinstance(elemento, dict) and
+                                'event' in elemento.keys() and
+                                elemento['event'] == 'close'):
                             reading = False
                             print("Tarea finalizada")
                             break

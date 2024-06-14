@@ -1,8 +1,12 @@
+'''Programa para analisis de las salidas del programa Scat'''
+
 import json
-import time, datetime
-import re, subprocess
+import time
+import datetime
+import re
+import subprocess
 import gpxpy
-import Funciones
+import funciones
 
 MIN_LEVEL = -100
 INTERVALO_MAX = 5
@@ -15,10 +19,11 @@ if __name__ == '__main__':
     modelo = 'Samsung'
     modelo_procesador = 'Samsung'
     interfaz = 4
-    bus_usb = Funciones.get_interfaz_dispositivo(modelo)
+    bus_usb = funciones.get_interfaz_dispositivo(modelo)
     bus = '001:' + str(bus_usb)
 
-    comando = ['scat', '-t', Funciones.COMANDO_SEGUN_MODELO[modelo_procesador], '-u', '-a', bus, '-i', str(interfaz)]
+    comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
+               '-u', '-a', bus, '-i', str(interfaz)]
     proceso = subprocess.Popen(comando, stdout=subprocess.PIPE)
 
     app_localizacion = 'com.mendhak.gpslogger'
@@ -27,7 +32,7 @@ if __name__ == '__main__':
     archivo_localizacion = fecha + '.gpx'
     localizacion_ruta_archivo = localizacion_ruta_archivo + '/' + archivo_localizacion
     print(f'Archivo:{localizacion_ruta_archivo}')
-    Funciones.acceder_paquete(app_localizacion)
+    funciones.acceder_paquete(app_localizacion)
 
     intervalo = 2
     celdas = []
@@ -38,7 +43,8 @@ if __name__ == '__main__':
         for linea in proceso.stdout:
 
             linea_decod = linea.decode().strip()
-            if 'LTE PHY Cell Info' in linea_decod:  # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
+            # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
+            if 'LTE PHY Cell Info' in linea_decod:
                 if 'NCell' not in linea_decod:
                     linea_decod = linea_decod.replace(',', ' ,').replace(':', ' :')
                     earfcn = None
@@ -64,7 +70,7 @@ if __name__ == '__main__':
                     if match:
                         rsrq = float(match.group(1))
 
-                    geoloc_data_str = Funciones.leer_archivo_android(localizacion_ruta_archivo)
+                    geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
                     gpx = gpxpy.parse(geoloc_data_str)
                     for track in gpx.tracks:
                         for segment in track.segments:
@@ -74,17 +80,17 @@ if __name__ == '__main__':
                     if len(celdas) > 0:
                         if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
                             intervalo = intervalo * 0.75
-                            if intervalo < INTERVALO_MIN:
-                                intervalo = INTERVALO_MIN
+                            intervalo = max(intervalo, INTERVALO_MIN)
                             print(f'Modificacion del intervalo a {intervalo} segundos')
                         if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
                             intervalo = intervalo * 1.5
-                            if intervalo > INTERVALO_MAX:
-                                intervalo = INTERVALO_MAX
+                            intervalo = min(intervalo, INTERVALO_MAX)
                             print(f'Modificacion del intervalo a {intervalo} segundos')
 
-                    serving_cell = {'earfcn': earfcn, 'pci': pci, 'plmn': plmn, 'rsrp': rsrp, 'rsrq': rsrq,
-                                    'time': str(datetime.datetime.now()), 'latitude': lat, 'longitude': long}
+                    serving_cell = {'earfcn': earfcn, 'pci': pci,
+                                    'plmn': plmn, 'rsrp': rsrp,
+                                    'rsrq': rsrq,'time': str(datetime.datetime.now()),
+                                    'latitude': lat, 'longitude': long}
                     celdas.append(serving_cell)
                     if rsrp < MIN_LEVEL:
                         print("Baja calidad de señal")
@@ -102,7 +108,7 @@ if __name__ == '__main__':
 
 
     except KeyboardInterrupt:
-        Funciones.cerrar_app(app_localizacion)
+        funciones.cerrar_app(app_localizacion)
         with open('celdas.json', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")
