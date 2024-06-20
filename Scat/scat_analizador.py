@@ -84,7 +84,11 @@ if __name__ == '__main__':
                             intervalo = max(intervalo, INTERVALO_MIN)
                             print(f'Modificacion del intervalo a {intervalo} segundos')
                         if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
-                            diff = max(abs(rsrp - celdas[-1]['rsrp']), DIFF_RSRP_MIN)
+                            diff = abs(rsrp - celdas[-1]['rsrp'])
+                            if 1 >= diff >= 0:
+                                diff = 0.5
+                            else:
+                                diff = 1
                             intervalo = intervalo * (1 / diff)
                             intervalo = min(intervalo, INTERVALO_MAX)
                             print(f'Modificacion del intervalo a {intervalo} segundos')
