@@ -78,14 +78,18 @@ if __name__ == '__main__':
                             long = segment.points[-1].longitude
 
                     if len(celdas) > 0:
-                        if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
-                            intervalo = intervalo * 0.75
-                            intervalo = max(intervalo, INTERVALO_MIN)
-                            print(f'Modificacion del intervalo a {intervalo} segundos')
-                        if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
-                            intervalo = intervalo * 1.5
-                            intervalo = min(intervalo, INTERVALO_MAX)
-                            print(f'Modificacion del intervalo a {intervalo} segundos')
+                        diff = abs(rsrp - celdas[-1]['rsrp'])
+                        nuevo_intervalo = intervalo * (1 / diff)
+                        intervalo = max(nuevo_intervalo,INTERVALO_MIN) and min(nuevo_intervalo,INTERVALO_MAX)
+                        print(f'Modificado intervalo a {nuevo_intervalo} segundos')
+                        # if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
+                        #     intervalo = intervalo * 0.75
+                        #     intervalo = max(intervalo, INTERVALO_MIN)
+                        #     print(f'Modificacion del intervalo a {intervalo} segundos')
+                        # if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
+                        #     intervalo = intervalo * 1.5
+                        #     intervalo = min(intervalo, INTERVALO_MAX)
+                        #     print(f'Modificacion del intervalo a {intervalo} segundos')
 
                     serving_cell = {'earfcn': earfcn, 'pci': pci,
                                     'plmn': plmn, 'rsrp': rsrp,

@@ -9,7 +9,7 @@ if __name__ == '__main__':
     cliente.connect(hostname='192.168.1.47', username='marcos',password='mmmc2010',look_for_keys=False, allow_agent=False)
 
 
-    stdin, stdout, stderr =cliente.exec_command(command='cat Documentos/TFG-INFO/celdas.json')
+    stdin, stdout, stderr =cliente.exec_command(command="grep 'source /Documentos/.venv/bin/activate'|'python3 /Documentos/TFG-INFO/Scat/scat_analizador.py'")
 
     # Leer la salida del comando
 
