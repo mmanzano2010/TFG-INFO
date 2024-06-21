@@ -115,6 +115,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         funciones.cerrar_app(app_localizacion)
-        with open('celdas.json', 'w', encoding='utf-8') as archivo:
+        with open("../mediciones/celdas.json", 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")

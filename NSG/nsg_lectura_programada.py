@@ -88,7 +88,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Cerrando...")
         funciones.cerrar_app(funciones.APLICACION)
-        with open("puntos.json", 'w', encoding='utf-8') as archivo:
+        with open("../mediciones/puntos.json", 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(puntos, indent=2))
         print(puntos)
         print("Tarea finalizada")
