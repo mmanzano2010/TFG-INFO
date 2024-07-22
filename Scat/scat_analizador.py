@@ -20,7 +20,7 @@ if __name__ == '__main__':
     modelo_procesador = 'Samsung'
     interfaz = 4
     bus_usb = funciones.get_interfaz_dispositivo(modelo)
-    bus = '001:' + str(bus_usb)
+    bus = str(bus_usb[0])+":"+str(bus_usb[1])
 
     comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
                '-u', '-a', bus, '-i', str(interfaz)]
