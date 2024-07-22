@@ -95,7 +95,7 @@ if __name__ == '__main__':
                     if rsrp < MIN_LEVEL:
                         print("Baja calidad de señal")
                         if len(celda_ref.keys()) > 0:
-                            print(f'Volver a {celda_ref['latitude']},{celda_ref['longitude']}')
+                            print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
                         else:
                             print("Buscar localizacion de referencia")
                             print(json.dumps(serving_cell, indent=2))
@@ -109,6 +109,6 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         funciones.cerrar_app(app_localizacion)
-        with open('celdas.json', 'w', encoding='utf-8') as archivo:
+        with open('../ficheros_mediciones/celdas.json', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")
