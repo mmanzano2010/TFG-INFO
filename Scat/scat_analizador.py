@@ -81,11 +81,11 @@ if __name__ == '__main__':
                         if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
                             intervalo = intervalo * 0.75
                             intervalo = max(intervalo, INTERVALO_MIN)
-                            print(f'Modificacion del intervalo a {intervalo} segundos')
+                            print(f"Modificacion del intervalo a {intervalo} segundos")
                         if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
                             intervalo = intervalo * 1.5
                             intervalo = min(intervalo, INTERVALO_MAX)
-                            print(f'Modificacion del intervalo a {intervalo} segundos')
+                            print(f"Modificacion del intervalo a {intervalo} segundos")
 
                     serving_cell = {'earfcn': earfcn, 'pci': pci,
                                     'plmn': plmn, 'rsrp': rsrp,
