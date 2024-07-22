@@ -22,7 +22,7 @@ def get_interfaz_dispositivo(modelo):
                 # print(linea)
                 linea = linea.replace(':', ' :')
                 linea = linea.split(' ')
-                bus = linea[3]
+                bus = [linea[1],linea[3]]
                 print(bus)
                 return bus
 

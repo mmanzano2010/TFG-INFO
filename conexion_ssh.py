@@ -1,4 +1,6 @@
 import json
+import time
+
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import pandas as pd
@@ -7,43 +9,39 @@ import paramiko
 import logging
 
 
-def animate(lineas):
-    xar = []
-    yar = []
-
-    for linea in lineas:
-        x = linea['time']
-        y = linea['rsrp']
-        xar.append(x)
-        yar.append(y)
-    ax1.clear()
-    ax1.plot(xar, yar)
-
 if __name__ == '__main__':
     cliente = paramiko.SSHClient()
     logging.basicConfig(level=logging.DEBUG)
     cliente.set_missing_host_key_policy(paramiko.AutoAddPolicy())
 
-    cliente.connect(hostname='192.168.1.33', username='marcos',password='1234',look_for_keys=False, allow_agent=False)
+    cliente.connect(hostname='192.168.1.38', username='marcos',password='1234')
 
-                                                                                                    #--------------Modificar y poner bien------------------#
-    stdin, stdout, stderr = cliente.exec_command(command="grep 'sudo su' | 'source TFG/bin/activate' | 'python3 /Documentos/TFG-INFO/Scat/scat_analizador.py'")
+    stdin, stdout, stderr = cliente.exec_command(command="source TFG/bin/activate && cat Documentos/TFG-INFO/Scat/scat_analizador.py")
 
-    fig = plt.figure()
-    ax1 = fig.add_subplot(1, 1, 1)
+
     lineas = []
     # Leer la salida del comando
-    for line in stdout.read().splitlines():
+    try:
+        while True:
 
-        print(line)
-        linea = json.loads(line)
+            if stdout.read():
+                linea = stdout.readline()
+                print(linea.strip())
 
-        data_aux = pd.DataFrame(linea)
-        time = [datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S.%f") for fecha in data_aux['time']]
-        linea['time'] = time
-        lineas.append(linea)
 
-    ani = animation.FuncAnimation(fig, animate(lineas), interval=1000)  # Actualiza el gráfico cada 1000 milisegundos
-    plt.show()
+            # if json.loads(linea):
+            #     linea = json.loads(linea)
+            #
+            #     data_aux = pd.DataFrame(linea)
+            #     time = [datetime.strptime(fecha, "%Y-%m-%d %H:%M:%S.%f") for fecha in data_aux['time']]
+            #     linea['time'] = time
+            #     lineas.append(linea)
+            if stderr.read():
+                print("error")
+                print(stderr.read())
+                break
 
+    except KeyboardInterrupt:
+        print("fin")
+        cliente.exec_command("deactivate")
     cliente.close()
