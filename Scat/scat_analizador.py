@@ -23,7 +23,12 @@ DIFF_RSRP_MAX = 10
 def train_model(params, data):
     celdas = data
     X_train = pd.DataFrame(celdas)
-    X_train.drop('earfcn').drop('plmn').drop('pci').drop('time').drop('rsrq')
+    X_train = X_train.drop('earfcn',axis="columns")
+    X_train = X_train.drop('time',axis="columns")
+    X_train = X_train.drop('rsrq',axis="columns")
+    X_train = X_train.drop('pci',axis="columns")
+    X_train = X_train.drop('plmn',axis="columns")
+    print(X_train)
     Y_train = X_train.pop('rsrp')
     X_train = X_train.to_numpy()
     Y_train = Y_train.to_numpy()
@@ -31,8 +36,12 @@ def train_model(params, data):
 
 
     num_round = min(len(celdas), 10)
-    cv_results = lgb.cv(params, train_data, num_round, nfold=5)
-    best_num_boost_round = len(cv_results['rmse-mean'])
+    if len(celdas)>6:
+        cv_results = lgb.cv(params, train_data, num_round, nfold=3)
+        best_num_boost_round = len(cv_results)
+
+    else:
+        best_num_boost_round = 1
     final_model = lgb.train(params, train_data, num_boost_round=best_num_boost_round)
     return final_model
 
@@ -62,7 +71,7 @@ if __name__ == '__main__':
     celdas = []
     celda_ref = {}
 
-    params = {'num_leaves': 31, 'objective': 'binary'}
+    params = {'num_leaves': 10, 'objective': 'binary'}
     params['metric'] = 'auc'
 
 
@@ -115,8 +124,12 @@ if __name__ == '__main__':
                                     'plmn': plmn, 'rsrp': rsrp,
                                     'rsrq': rsrq,'time': str(datetime.datetime.now()),
                                     'latitude': lat, 'longitude': long, 'elevation': altitud}
-                    data = pd.DataFrame({'latitude': lat, 'longitude': long, 'elevation': altitud}).to_numpy()
+
                     if len(celdas) > 10 and t_modelo:
+                        data = pd.DataFrame([serving_cell])
+                        data = data.drop(labels=['earfcn','pci','plmn','rsrp','rsrq','time'],axis="columns")
+                        print(data)
+                        data = data.to_numpy()
                         y_pred = t_modelo.predict(data)
                         print(f"RSRP previsto : {y_pred} || RSRP : {rsrp}")
                     celdas.append(serving_cell)
