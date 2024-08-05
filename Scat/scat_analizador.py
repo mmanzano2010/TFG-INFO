@@ -7,6 +7,12 @@ import re
 import subprocess
 import gpxpy
 import funciones
+import keras
+
+import tensorflow as tf
+import pandas as pd
+import numpy as np
+
 
 MIN_LEVEL = -100
 INTERVALO_MAX = 5
@@ -35,7 +41,7 @@ if __name__ == '__main__':
     funciones.acceder_paquete(app_localizacion)
 
     intervalo = 2
-    celdas = []
+    celdas = pd.DataFrame
     celda_ref = {}
 
     try:
@@ -45,7 +51,8 @@ if __name__ == '__main__':
             linea_decod = linea.decode().strip()
             # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
             if 'LTE PHY Cell Info' in linea_decod:
-                if 'NCell' not in linea_decod:
+                if 'NCell' not in linea_decod: # Buscamos la celda servidora
+
                     linea_decod = linea_decod.replace(',', ' ,').replace(':', ' :')
                     earfcn = None
                     pci = None
@@ -54,6 +61,7 @@ if __name__ == '__main__':
                     rsrq = None
                     lat = 0
                     long = 0
+                    altitud = 0
                     match = re.search('EARFCN' + r'\s+(\S*)', linea_decod)
                     if match:
                         earfcn = int(match.group(1))
@@ -76,22 +84,23 @@ if __name__ == '__main__':
                         for segment in track.segments:
                             lat = segment.points[-1].latitude
                             long = segment.points[-1].longitude
+                            altitud = segment.points[-1].elevation
 
-                    if len(celdas) > 0:
-                        if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
-                            intervalo = intervalo * 0.75
-                            intervalo = max(intervalo, INTERVALO_MIN)
-                            print(f"Modificacion del intervalo a {intervalo} segundos")
-                        if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
-                            intervalo = intervalo * 1.5
-                            intervalo = min(intervalo, INTERVALO_MAX)
-                            print(f"Modificacion del intervalo a {intervalo} segundos")
+                    # if len(celdas) > 0:
+                    #     if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
+                    #         intervalo = intervalo * 0.75
+                    #         intervalo = max(intervalo, INTERVALO_MIN)
+                    #         print(f"Modificacion del intervalo a {intervalo} segundos")
+                    #     if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
+                    #         intervalo = intervalo * 1.5
+                    #         intervalo = min(intervalo, INTERVALO_MAX)
+                    #         print(f"Modificacion del intervalo a {intervalo} segundos")
 
                     serving_cell = {'earfcn': earfcn, 'pci': pci,
                                     'plmn': plmn, 'rsrp': rsrp,
                                     'rsrq': rsrq,'time': str(datetime.datetime.now()),
-                                    'latitude': lat, 'longitude': long}
-                    celdas.append(serving_cell)
+                                    'latitude': lat, 'longitude': long, 'elevation': altitud}
+                    celdas.add(pd.DataFrame(serving_cell))
                     if rsrp < MIN_LEVEL:
                         print("Baja calidad de señal")
                         if len(celda_ref.keys()) > 0:
