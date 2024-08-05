@@ -7,11 +7,10 @@ import re
 import subprocess
 import gpxpy
 import funciones
-import keras
-
-import tensorflow as tf
+import lightgbm as lgb
 import pandas as pd
 import numpy as np
+
 
 
 MIN_LEVEL = -100
@@ -21,7 +20,26 @@ INTERVALO_MIN = 0.25
 DIFF_RSRP_MIN = 2
 DIFF_RSRP_MAX = 10
 
+def train_model(params, data):
+    celdas = data
+    X_train = pd.DataFrame(celdas)
+    X_train.drop('earfcn').drop('plmn').drop('pci').drop('time').drop('rsrq')
+    Y_train = X_train.pop('rsrp')
+    X_train = X_train.to_numpy()
+    Y_train = Y_train.to_numpy()
+    train_data = lgb.Dataset(X_train, label=Y_train)
+
+
+    num_round = min(len(celdas), 10)
+    cv_results = lgb.cv(params, train_data, num_round, nfold=5)
+    best_num_boost_round = len(cv_results['rmse-mean'])
+    final_model = lgb.train(params, train_data, num_boost_round=best_num_boost_round)
+    return final_model
+
 if __name__ == '__main__':
+
+
+
     modelo = 'Samsung'
     modelo_procesador = 'Samsung'
     interfaz = 4
@@ -41,12 +59,19 @@ if __name__ == '__main__':
     funciones.acceder_paquete(app_localizacion)
 
     intervalo = 2
-    celdas = pd.DataFrame
+    celdas = []
     celda_ref = {}
+
+    params = {'num_leaves': 31, 'objective': 'binary'}
+    params['metric'] = 'auc'
+
 
     try:
         print('Escaneando...')
         for linea in proceso.stdout:
+            # Si ya hay celdas entrenamos el modelo
+            if len(celdas)!= 0:
+                t_modelo = train_model(params, celdas)
 
             linea_decod = linea.decode().strip()
             # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
@@ -86,21 +111,18 @@ if __name__ == '__main__':
                             long = segment.points[-1].longitude
                             altitud = segment.points[-1].elevation
 
-                    # if len(celdas) > 0:
-                    #     if abs(rsrp - celdas[-1]['rsrp']) > DIFF_RSRP_MAX:
-                    #         intervalo = intervalo * 0.75
-                    #         intervalo = max(intervalo, INTERVALO_MIN)
-                    #         print(f"Modificacion del intervalo a {intervalo} segundos")
-                    #     if abs(rsrp - celdas[-1]['rsrp']) < DIFF_RSRP_MIN:
-                    #         intervalo = intervalo * 1.5
-                    #         intervalo = min(intervalo, INTERVALO_MAX)
-                    #         print(f"Modificacion del intervalo a {intervalo} segundos")
-
                     serving_cell = {'earfcn': earfcn, 'pci': pci,
                                     'plmn': plmn, 'rsrp': rsrp,
                                     'rsrq': rsrq,'time': str(datetime.datetime.now()),
                                     'latitude': lat, 'longitude': long, 'elevation': altitud}
-                    celdas.add(pd.DataFrame(serving_cell))
+                    data = pd.DataFrame({'latitude': lat, 'longitude': long, 'elevation': altitud}).to_numpy()
+                    if len(celdas) > 10 and t_modelo:
+                        y_pred = t_modelo.predict(data)
+                        print(f"RSRP previsto : {y_pred} || RSRP : {rsrp}")
+                    celdas.append(serving_cell)
+
+
+
                     if rsrp < MIN_LEVEL:
                         print("Baja calidad de señal")
                         if len(celda_ref.keys()) > 0:
