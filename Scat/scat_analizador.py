@@ -36,7 +36,7 @@ def train_model(params, data):
 
 
     num_round = min(len(celdas), 10)
-    if len(celdas)>6:
+    if len(celdas) > 6:
         cv_results = lgb.cv(params, train_data, num_round, nfold=3)
         best_num_boost_round = len(cv_results)
 
@@ -71,8 +71,8 @@ if __name__ == '__main__':
     celdas = []
     celda_ref = {}
 
-    params = {'num_leaves': 10, 'objective': 'binary'}
-    params['metric'] = 'auc'
+    params = {'num_leaves': 31, 'objective': 'regression'}
+    params['metric'] = 'rmse'
 
 
     try:
