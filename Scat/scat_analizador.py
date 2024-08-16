@@ -11,7 +11,7 @@ import lightgbm as lgb
 from lightgbm import LGBMRegressor
 import pandas as pd
 import numpy as np
-
+import argparse
 
 
 MIN_LEVEL = -100
@@ -48,15 +48,17 @@ def train_model(params, data):
     return final_model
 
 if __name__ == '__main__':
-
-
-
-    modelo = 'Samsung'
-    modelo_procesador = 'Samsung'
-    interfaz = 4
+    #Argumentos para el analizador y para Scat
+    parser = argparse.ArgumentParser(description='Programa para escaneo de datos de cobertura con dispositivos Android')
+    parser.add_argument('modelo', type=str, help='Fabricante del procesador, puede ser Samsung,Qualcomm,Huawei',choices=['Samsung','Qualcomm','Huawei'])
+    parser.add_argument('--interfaz', type=int, help='Interfaz del bus USB,para la ejecucion de Scat', default=2)
+    args = parser.parse_args()
+    modelo = args.modelo
+    modelo_procesador = args.modelo
+    interfaz = args.interfaz
     bus_usb = funciones.get_interfaz_dispositivo(modelo)
     bus = str(bus_usb[0])+":"+str(bus_usb[1])
-
+    #Comando de ejecucion de Scat
     comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
                '-u', '-a', bus, '-i', str(interfaz)]
     proceso = subprocess.Popen(comando, stdout=subprocess.PIPE)
@@ -167,6 +169,7 @@ if __name__ == '__main__':
 
 
     except KeyboardInterrupt:
+        proceso.terminate()
         funciones.cerrar_app(app_localizacion)
         date = str(datetime.datetime.now())
         with open(f'../ficheros_mediciones/celdas{date}.json', 'w', encoding='utf-8') as archivo:
