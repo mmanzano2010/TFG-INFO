@@ -8,6 +8,7 @@ import subprocess
 import gpxpy
 import funciones
 import lightgbm as lgb
+from lightgbm import LGBMRegressor
 import pandas as pd
 import numpy as np
 
@@ -18,7 +19,8 @@ INTERVALO_MAX = 5
 INTERVALO_MIN = 0.25
 
 DIFF_RSRP_MIN = 2
-DIFF_RSRP_MAX = 10
+DIFF_RSRP_MAX = 8
+DIFF_RSRP_EXTR = 20
 
 def train_model(params, data):
     celdas = data
@@ -36,8 +38,8 @@ def train_model(params, data):
 
 
     num_round = min(len(celdas), 10)
-    if len(celdas) > 6:
-        cv_results = lgb.cv(params, train_data, num_round, nfold=3)
+    if len(celdas) > 10:
+        cv_results = lgb.cv(params, train_data, num_round)
         best_num_boost_round = len(cv_results)
 
     else:
@@ -67,13 +69,12 @@ if __name__ == '__main__':
     print(f'Archivo:{localizacion_ruta_archivo}')
     funciones.acceder_paquete(app_localizacion)
 
-    intervalo = 2
+    interval = 2
     celdas = []
     celda_ref = {}
 
-    params = {'num_leaves': 31, 'objective': 'regression'}
+    params = {'num_leaves': 31, 'objective': 'regression','n_jobs':4,'learning_rate':0.4}
     params['metric'] = 'rmse'
-
 
     try:
         print('Escaneando...')
@@ -112,6 +113,7 @@ if __name__ == '__main__':
                     if match:
                         rsrq = float(match.group(1))
 
+                    #Procesado de datos de la celda
                     geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
                     gpx = gpxpy.parse(geoloc_data_str)
                     for track in gpx.tracks:
@@ -125,6 +127,8 @@ if __name__ == '__main__':
                                     'rsrq': rsrq,'time': str(datetime.datetime.now()),
                                     'latitude': lat, 'longitude': long, 'elevation': altitud}
 
+                    # Deteccion de obstaculos grandes,
+                    # es necesario al menos haber establecido un pequeño recorrido de referencia
                     if len(celdas) > 10 and t_modelo:
                         data = pd.DataFrame([serving_cell])
                         data = data.drop(labels=['earfcn','pci','plmn','rsrp','rsrq','time'],axis="columns")
@@ -132,8 +136,19 @@ if __name__ == '__main__':
                         data = data.to_numpy()
                         y_pred = t_modelo.predict(data)
                         print(f"RSRP previsto : {y_pred} || RSRP : {rsrp}")
-                    celdas.append(serving_cell)
+                        if abs(y_pred - rsrp) <= DIFF_RSRP_MIN:
+                            nuevo_intervalo = interval * 1.25
+                            interval = min(10, nuevo_intervalo)
+                        elif DIFF_RSRP_MIN < abs(y_pred - rsrp) < DIFF_RSRP_MAX:
+                            nuevo_intervalo = interval
+                            interval = nuevo_intervalo
+                        elif abs(y_pred - rsrp) > DIFF_RSRP_MAX:
+                            nuevo_intervalo = interval * 0.5
+                            interval = min(0.25, nuevo_intervalo)
+                            if abs(y_pred - rsrp) > DIFF_RSRP_EXTR:
+                                print("Obstáculo detectado")
 
+                    celdas.append(serving_cell)
 
 
                     if rsrp < MIN_LEVEL:
@@ -147,12 +162,13 @@ if __name__ == '__main__':
                         celda_ref = serving_cell
                         print(json.dumps(serving_cell, indent=2))
 
-                    time.sleep(intervalo)
+                    time.sleep(interval)
 
 
 
     except KeyboardInterrupt:
         funciones.cerrar_app(app_localizacion)
-        with open('../ficheros_mediciones/celdas.json', 'w', encoding='utf-8') as archivo:
+        date = str(datetime.datetime.now())
+        with open(f'../ficheros_mediciones/celdas{date}.json', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")
