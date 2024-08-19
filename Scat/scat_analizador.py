@@ -154,6 +154,7 @@ if __name__ == '__main__':
                             interval = max(0.25, nuevo_intervalo)
                             if abs(y_pred - rsrp) > DIFF_RSRP_EXTR:
                                 print("Obstáculo detectado")
+                        print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
 
                     celdas.append(serving_cell)
 
