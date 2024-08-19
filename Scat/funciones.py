@@ -23,7 +23,7 @@ def get_interfaz_dispositivo(modelo):
                 linea = linea.replace(':', ' :')
                 linea = linea.split(' ')
                 bus = [linea[1], linea[3]]
-                print(bus)
+                print(f'Bus USB:{bus}')
                 return bus
 
 

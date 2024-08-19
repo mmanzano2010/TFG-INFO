@@ -23,6 +23,9 @@ DIFF_RSRP_MAX = 8
 DIFF_RSRP_EXTR = 20
 
 def train_model(params, data):
+    """Entrenamiento del modelo de Aprendizaje Automatico,
+    Como argumentos lleva la lista de celdas y los parametros de aprendizaje,
+    devuelve un modelo entrenado"""
     celdas = data
     X_train = pd.DataFrame(celdas)
     X_train = X_train.drop('earfcn',axis="columns")
@@ -36,14 +39,13 @@ def train_model(params, data):
     Y_train = Y_train.to_numpy()
     train_data = lgb.Dataset(X_train, label=Y_train)
 
-
-    num_round = min(len(celdas), 10)
     if len(celdas) > 10:
-        cv_results = lgb.cv(params, train_data, num_round)
+        cv_results = lgb.cv(params, train_data)
         best_num_boost_round = len(cv_results)
+        final_model = lgb.train(params, train_data, num_boost_round=best_num_boost_round)
+        return final_model
 
-    else:
-        best_num_boost_round = 1
+    best_num_boost_round = 1
     final_model = lgb.train(params, train_data, num_boost_round=best_num_boost_round)
     return final_model
 
@@ -62,22 +64,25 @@ if __name__ == '__main__':
     comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
                '-u', '-a', bus, '-i', str(interfaz)]
     proceso = subprocess.Popen(comando, stdout=subprocess.PIPE)
-
+    #Direccion de la app de geolocalizacion y archivo
     app_localizacion = 'com.mendhak.gpslogger'
     localizacion_ruta_archivo = '/sdcard/GpsLogger'
     fecha = str(datetime.date.today()).replace('-', '')
     archivo_localizacion = fecha + '.gpx'
     localizacion_ruta_archivo = localizacion_ruta_archivo + '/' + archivo_localizacion
-    print(f'Archivo:{localizacion_ruta_archivo}')
+    print(f'Archivo de geolocalizacion:{localizacion_ruta_archivo}')
     funciones.acceder_paquete(app_localizacion)
 
-    interval = 2
+    #Variables generales del programa
+    interval = 1
     celdas = []
     celda_ref = {}
 
-    params = {'num_leaves': 31, 'objective': 'regression','n_jobs':4,'learning_rate':0.4}
+    #Parametros de aprendizaje del modelo de AA
+    params = {'num_leaves': 31, 'objective': 'regression','n_jobs':4,'learning_rate':0.5}
     params['metric'] = 'rmse'
 
+    #Programa principal
     try:
         print('Escaneando...')
         for linea in proceso.stdout:
@@ -145,8 +150,8 @@ if __name__ == '__main__':
                             nuevo_intervalo = interval
                             interval = nuevo_intervalo
                         elif abs(y_pred - rsrp) > DIFF_RSRP_MAX:
-                            nuevo_intervalo = interval * 0.5
-                            interval = min(0.25, nuevo_intervalo)
+                            nuevo_intervalo = min(1,interval * 0.5)
+                            interval = max(0.25, nuevo_intervalo)
                             if abs(y_pred - rsrp) > DIFF_RSRP_EXTR:
                                 print("Obstáculo detectado")
 
