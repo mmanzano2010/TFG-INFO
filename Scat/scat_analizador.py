@@ -39,7 +39,7 @@ def train_model(params, data):
     Y_train = Y_train.to_numpy()
     train_data = lgb.Dataset(X_train, label=Y_train)
 
-    if len(celdas) > 10:
+    if len(celdas) > 15:
         cv_results = lgb.cv(params, train_data)
         best_num_boost_round = len(cv_results)
         final_model = lgb.train(params, train_data, num_boost_round=best_num_boost_round)
@@ -171,7 +171,12 @@ if __name__ == '__main__':
                         print(json.dumps(serving_cell, indent=2))
 
                     time.sleep(interval)
-
+            else:
+                print(f'Ausencia total de cobertura')
+                if len(celda_ref.keys()) > 0:
+                    print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
+                else:
+                    print("Buscar localizacion de referencia")
 
 
     except KeyboardInterrupt:
