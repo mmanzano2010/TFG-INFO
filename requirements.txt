@@ -1,6 +1,7 @@
 bitarray==2.9.2
 bitstring==4.2.3
 gpxpy==1.6.2
+joblib==1.4.2
 libscrc==1.8.1
 lightgbm==4.5.0
 numpy==2.0.1
@@ -12,7 +13,9 @@ python-dateutil==2.9.0.post0
 pytz==2024.1
 pyusb==1.2.1
 scat @ git+https://github.com/fgsect/scat@2a76b80de32a6678aad612564d69227a8561fe09
+scikit-learn==1.5.1
 scipy==1.14.0
 six==1.16.0
+threadpoolctl==3.5.0
 tzdata==2024.1
 wheel==0.44.0
