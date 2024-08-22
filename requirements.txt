@@ -2,9 +2,17 @@ bitarray==2.9.2
 bitstring==4.2.3
 gpxpy==1.6.2
 libscrc==1.8.1
+lightgbm==4.5.0
+numpy==2.0.1
 packaging==24.1
+pandas==2.2.2
 pygpx==0.2
 pyserial==3.5
+python-dateutil==2.9.0.post0
+pytz==2024.1
 pyusb==1.2.1
 scat @ git+https://github.com/fgsect/scat@2a76b80de32a6678aad612564d69227a8561fe09
-wheel==0.43.0
+scipy==1.14.0
+six==1.16.0
+tzdata==2024.1
+wheel==0.44.0
