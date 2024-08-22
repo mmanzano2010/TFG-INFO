@@ -14,7 +14,7 @@ import numpy as np
 import argparse
 
 
-MIN_LEVEL = -100
+MIN_LEVEL = -130
 INTERVALO_MAX = 5
 INTERVALO_MIN = 0.25
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                     if match:
                         rsrq = float(match.group(1))
 
-                    #Procesado de datos de la celda
+                    #Datos de geolocalizacion
                     geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
                     gpx = gpxpy.parse(geoloc_data_str)
                     for track in gpx.tracks:
@@ -128,7 +128,7 @@ if __name__ == '__main__':
                             lat = segment.points[-1].latitude
                             long = segment.points[-1].longitude
                             altitud = segment.points[-1].elevation
-
+                    #Procesado de datos de la celda
                     serving_cell = {'earfcn': earfcn, 'pci': pci,
                                     'plmn': plmn, 'rsrp': rsrp,
                                     'rsrq': rsrq,'time': str(datetime.datetime.now()),
@@ -143,16 +143,16 @@ if __name__ == '__main__':
                         data = data.to_numpy()
                         y_pred = t_modelo.predict(data)
                         print(f"RSRP previsto : {y_pred} || RSRP : {rsrp}")
-                        if abs(y_pred - rsrp) <= DIFF_RSRP_MIN:
+                        if abs(abs(y_pred) - abs(rsrp)) <= DIFF_RSRP_MIN:
                             nuevo_intervalo = interval * 1.25
                             interval = min(10, nuevo_intervalo)
-                        elif DIFF_RSRP_MIN < abs(y_pred - rsrp) < DIFF_RSRP_MAX:
+                        elif DIFF_RSRP_MIN < abs(abs(y_pred) - abs(rsrp)) < DIFF_RSRP_MAX:
                             nuevo_intervalo = interval
                             interval = nuevo_intervalo
-                        elif abs(y_pred - rsrp) > DIFF_RSRP_MAX:
+                        elif abs(abs(y_pred) - abs(rsrp)) > DIFF_RSRP_MAX:
                             nuevo_intervalo = min(1,interval * 0.5)
                             interval = max(0.25, nuevo_intervalo)
-                            if abs(y_pred - rsrp) > DIFF_RSRP_EXTR:
+                            if abs(abs(y_pred) - abs(rsrp)) > DIFF_RSRP_EXTR or abs(abs(celdas[-1]['rsrp']) - abs(rsrp)) > DIFF_RSRP_EXTR:
                                 print("Obstáculo detectado")
                         print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
 
@@ -172,7 +172,7 @@ if __name__ == '__main__':
 
                     time.sleep(interval)
             else:
-                print(f'Ausencia total de cobertura')
+                print("Ausencia total de cobertura")
                 if len(celda_ref.keys()) > 0:
                     print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
                 else:
@@ -182,7 +182,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         proceso.terminate()
         funciones.cerrar_app(app_localizacion)
-        date = str(datetime.datetime.now())
+        date = str(datetime.datetime.now().strftime("%d%m%Y%H%M%S"))
         with open(f'../ficheros_mediciones/celdas{date}.json', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
         print("Tarea finalizada")
