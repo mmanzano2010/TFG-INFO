@@ -161,7 +161,9 @@ if __name__ == '__main__':
                     print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
 
                 celdas.append(serving_cell)
-
+                with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
+                    archivo.write(json.dumps(celdas, indent=2))
+                    archivo.close()
 
                 if serving_cell['rsrp'] < MIN_LEVEL:
                     print("Baja calidad de señal")
@@ -183,9 +185,7 @@ if __name__ == '__main__':
                     print("Buscar localizacion de referencia")
 
 
-            with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
-                archivo.write(json.dumps(celdas, indent=2))
-                archivo.close()
+
 
 
             time.sleep(interval)
