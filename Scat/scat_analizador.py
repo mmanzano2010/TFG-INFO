@@ -5,12 +5,9 @@ import time
 import datetime
 import re
 import subprocess
-from time import process_time_ns
-
 import gpxpy
 import funciones
 import lightgbm as lgb
-from lightgbm import LGBMRegressor
 import pandas as pd
 import numpy as np
 import argparse
@@ -32,17 +29,17 @@ def train_model(params, data):
     Como argumentos lleva la lista de celdas y los parametros de aprendizaje,
     devuelve un modelo entrenado"""
     celdas = data
-    X_train = pd.DataFrame(celdas)
-    X_train = X_train.drop('earfcn',axis="columns")
-    X_train = X_train.drop('time',axis="columns")
-    X_train = X_train.drop('rsrq',axis="columns")
-    X_train = X_train.drop('pci',axis="columns")
-    X_train = X_train.drop('plmn',axis="columns")
-    print(X_train)
-    Y_train = X_train.pop('rsrp')
-    X_train = X_train.to_numpy()
-    Y_train = Y_train.to_numpy()
-    train_data = lgb.Dataset(X_train, label=Y_train)
+    x_train = pd.DataFrame(celdas)
+    x_train = x_train.drop('earfcn',axis="columns")
+    x_train = x_train.drop('time',axis="columns")
+    x_train = x_train.drop('rsrq',axis="columns")
+    x_train = x_train.drop('pci',axis="columns")
+    x_train = x_train.drop('plmn',axis="columns")
+    print(x_train)
+    y_train = x_train.pop('rsrp')
+    x_train = x_train.to_numpy()
+    y_train = y_train.to_numpy()
+    train_data = lgb.Dataset(x_train, label=y_train)
 
     if len(celdas) > 15:
         cv_results = lgb.cv(params, train_data)
@@ -55,6 +52,7 @@ def train_model(params, data):
     return final_model
 
 def coger_datos_geo(localizacion_ruta_archivo):
+    """ Funcion para coger los datos de geolocalizacion del archivo .gpx"""
     geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
     gpx = gpxpy.parse(geoloc_data_str)
     for track in gpx.tracks:
@@ -64,6 +62,7 @@ def coger_datos_geo(localizacion_ruta_archivo):
             altitud = segment.points[-1].elevation
     return lat,long,altitud
 def procesar_linea(linea_decod,coordenadas):
+    """Funcion para procesar una linea de analisis de cobertura LTE"""
     linea_decod = linea_decod.replace(',', ' ,').replace(':', ' :')
     match = re.search('EARFCN' + r'\s+(\S*)', linea_decod)
     if match:
@@ -82,7 +81,7 @@ def procesar_linea(linea_decod,coordenadas):
         rsrq = float(match.group(1))
 
     # Datos de geolocalizacion
-    latitud,longitud,altitud =  coordenadas
+    latitud,longitud,altitud = coordenadas
     # Procesado de datos de la celda
     serving_cell = {'earfcn': earfcn, 'pci': pci,
                     'plmn': plmn, 'rsrp': rsrp,
@@ -92,9 +91,18 @@ def procesar_linea(linea_decod,coordenadas):
 
 if __name__ == '__main__':
     #Argumentos para el analizador y para Scat
-    parser = argparse.ArgumentParser(description='Programa para escaneo de datos de cobertura con dispositivos Android')
-    parser.add_argument('modelo', type=str, help='Fabricante del procesador, puede ser Samsung,Qualcomm,Huawei',choices=['Samsung','Qualcomm','Huawei'])
-    parser.add_argument('--interfaz', type=int, help='Interfaz del bus USB,para la ejecucion de Scat', default=2)
+    parser = argparse.ArgumentParser(
+        description='Programa para escaneo de datos de cobertura con dispositivos Android')
+    parser.add_argument('modelo',
+                    type=str,
+                    help='Fabricante del procesador, puede ser Samsung,Qualcomm,Huawei',
+                    choices=['Samsung','Qualcomm','Huawei']
+    )
+    parser.add_argument('--interfaz',
+                        type=int,
+                        help='Interfaz del bus USB,para la ejecucion de Scat',
+                        default=2
+    )
     args = parser.parse_args()
     modelo = args.modelo
     modelo_procesador = args.modelo
@@ -128,7 +136,7 @@ if __name__ == '__main__':
     #Programa principal
     try:
         print('Escaneando...')
-        interval_aux =interval
+        interval_aux = interval
         while True:
             interval = interval_aux
             linea = proceso.stdout.readline()
@@ -140,13 +148,13 @@ if __name__ == '__main__':
             if 'LTE PHY Cell Info' in linea_decod and 'NCell' not in linea_decod:# Buscamos la celda servidora
                 coordenadas = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
                 serving_cell = procesar_linea(linea_decod,coordenadas)
-                if len(celdas)!= 0:
+                if len(celdas) != 0:
                     t_modelo = train_model(params, celdas)
                 # Deteccion de obstaculos grandes,
                 # es necesario al menos haber establecido un pequeño recorrido de referencia
                 if len(celdas) > 10 and t_modelo:
                     data = pd.DataFrame([serving_cell])
-                    data = data.drop(labels=['earfcn','pci','plmn','rsrp','rsrq','time'],axis="columns")
+                    data = data.drop(labels=['earfcn', 'pci', 'plmn', 'rsrp', 'rsrq',  'time'], axis="columns")
                     print(data)
                     data = data.to_numpy()
                     y_pred = t_modelo.predict(data)
@@ -214,7 +222,7 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         proceso.terminate()
-        stdout,stderr =proceso.communicate()
+        stdout, stderr = proceso.communicate()
         funciones.cerrar_app(APP_LOCALIZACION)
         with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
