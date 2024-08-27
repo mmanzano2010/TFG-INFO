@@ -104,7 +104,7 @@ if __name__ == '__main__':
     #Para archivo de guardado
     date = str(datetime.datetime.now().strftime("%d%m%Y%H%M%S"))
     file = f'celdas{date}.json'
-    path_to_file = f'../ficheros_mediciones/{file}'
+    path_to_file = f'ficheros_mediciones/{file}'
     #Comando de ejecucion de Scat
     comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
                '-u', '-a', bus, '-i', str(interfaz)]
@@ -167,7 +167,9 @@ if __name__ == '__main__':
                 celdas.append(serving_cell)
                 with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
                     archivo.write(json.dumps(celdas, indent=2))
+                    print("celda guardada")
                     archivo.close()
+
 
                 if serving_cell['rsrp'] < MIN_LEVEL:
                     print("Baja calidad de señal")
@@ -191,7 +193,7 @@ if __name__ == '__main__':
                                 print("Ausencia total de cobertura")
                             else:
                                 interval_aux = interval
-                                interval =0
+                                interval = 0
                     if len(celda_ref.keys()) > 0:
                         print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
                     else:
