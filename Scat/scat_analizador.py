@@ -5,6 +5,8 @@ import time
 import datetime
 import re
 import subprocess
+from time import process_time_ns
+
 import gpxpy
 import funciones
 import lightgbm as lgb
@@ -106,7 +108,7 @@ if __name__ == '__main__':
     #Comando de ejecucion de Scat
     comando = ['scat', '-t', funciones.COMANDO_SEGUN_MODELO[modelo_procesador],
                '-u', '-a', bus, '-i', str(interfaz)]
-    proceso = subprocess.Popen(comando, stdout=subprocess.PIPE)
+    proceso = subprocess.Popen(comando,bufsize=1,stdout = subprocess.PIPE, pipesize=1,text = True)
     #Direccion de la app de geolocalizacion y archivo
     fecha = str(datetime.date.today()).replace('-', '')
     archivo_localizacion = fecha + '.gpx'
@@ -126,12 +128,14 @@ if __name__ == '__main__':
     #Programa principal
     try:
         print('Escaneando...')
+        interval_aux =interval
         while True:
-
+            interval = interval_aux
             linea = proceso.stdout.readline()
+            print(linea)
+            linea_decod = linea.strip()
             # Si ya hay celdas entrenamos el modelo
 
-            linea_decod = linea.decode().strip()
             # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
             if 'LTE PHY Cell Info' in linea_decod and 'NCell' not in linea_decod:# Buscamos la celda servidora
                 coordenadas = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
@@ -158,7 +162,7 @@ if __name__ == '__main__':
                         interval = max(0.25, nuevo_intervalo)
                         if abs(abs(y_pred) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR or abs(abs(celdas[-1]['rsrp']) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR:
                             print("Obstáculo detectado")
-                    print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
+                print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
 
                 celdas.append(serving_cell)
                 with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
@@ -178,11 +182,24 @@ if __name__ == '__main__':
 
 
             else:
-                print("Ausencia total de cobertura")
-                if len(celda_ref.keys()) > 0:
-                    print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
+                if 'EDGE' in linea_decod or 'HSPA' in linea_decod:
+                    if 'RSSI' in linea_decod:
+                        match = re.search('RSSI ' + r'\s+(\S*)', linea_decod)
+                        if match:
+                            rssi = int(match.group(1))
+                            if rssi < -130:
+                                print("Ausencia total de cobertura")
+                            else:
+                                interval_aux = interval
+                                interval =0
+                    if len(celda_ref.keys()) > 0:
+                        print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
+                    else:
+                        print("Buscar localizacion de referencia")
                 else:
-                    print("Buscar localizacion de referencia")
+                    inerval_aux = interval
+                    interval = 0
+
 
 
 
@@ -195,8 +212,10 @@ if __name__ == '__main__':
 
     except KeyboardInterrupt:
         proceso.terminate()
+        stdout,stderr =proceso.communicate()
         funciones.cerrar_app(APP_LOCALIZACION)
         with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
             archivo.close()
         print("Tarea finalizada")
+        print(stdout)
