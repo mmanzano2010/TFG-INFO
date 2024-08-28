@@ -17,8 +17,8 @@ MIN_LEVEL = -130
 INTERVALO_MAX = 5
 INTERVALO_MIN = 0.25
 
-DIFF_RSRP_MIN = 2
-DIFF_RSRP_MAX = 8
+DIFF_RSRP_MIN = 5
+DIFF_RSRP_MAX = 10
 DIFF_RSRP_EXTR = 20
 
 APP_LOCALIZACION = 'com.mendhak.gpslogger'
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     interval = 1
     celdas = []
     celda_ref = {}
-
+    ciclos = 50
     #Parametros de aprendizaje del modelo de AA
     params = {'num_leaves': 31, 'objective': 'regression','n_jobs':4,'learning_rate':0.5}
     params['metric'] = 'rmse'
@@ -138,6 +138,11 @@ if __name__ == '__main__':
         print('Escaneando...')
         interval_aux = interval
         while True:
+            if len(celdas) > ciclos or interval >=9:
+                proceso.terminate()
+                proceso = subprocess.Popen(comando, bufsize=1, stdout=subprocess.PIPE, pipesize=1, text=True)
+                print("REINICIO SCAT")
+                ciclos += 50
             interval = interval_aux
             linea = proceso.stdout.readline()
             print(linea)
@@ -154,7 +159,7 @@ if __name__ == '__main__':
                 # es necesario al menos haber establecido un pequeño recorrido de referencia
                 if len(celdas) > 10 and t_modelo:
                     data = pd.DataFrame([serving_cell])
-                    data = data.drop(labels=['earfcn', 'pci', 'plmn', 'rsrp', 'rsrq',  'time'], axis="columns")
+                    data = data.drop(labels=['earfcn', 'pci', 'plmn', 'rsrp', 'rsrq', 'time'], axis="columns")
                     print(data)
                     data = data.to_numpy()
                     y_pred = t_modelo.predict(data)
@@ -162,22 +167,20 @@ if __name__ == '__main__':
                     if abs(abs(y_pred) - abs(serving_cell['rsrp'])) <= DIFF_RSRP_MIN:
                         nuevo_intervalo = interval * 1.25
                         interval = min(10, nuevo_intervalo)
+                        interval_aux = interval
                     elif DIFF_RSRP_MIN < abs(abs(y_pred) - abs(serving_cell['rsrp'])) < DIFF_RSRP_MAX:
                         nuevo_intervalo = interval
                         interval = nuevo_intervalo
+                        interval_aux = interval
                     elif abs(abs(y_pred) - abs(serving_cell['rsrp'])) > DIFF_RSRP_MAX:
                         nuevo_intervalo = min(1,interval * 0.5)
                         interval = max(0.25, nuevo_intervalo)
+                        interval_aux = interval
                         if abs(abs(y_pred) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR or abs(abs(celdas[-1]['rsrp']) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR:
                             print("Obstáculo detectado")
                 print(f'Intervalo hasta el siguiente escaneo de {interval} segundos')
 
                 celdas.append(serving_cell)
-                with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
-                    archivo.write(json.dumps(celdas, indent=2))
-                    print("celda guardada")
-                    archivo.close()
-
 
                 if serving_cell['rsrp'] < MIN_LEVEL:
                     print("Baja calidad de señal")
@@ -189,6 +192,32 @@ if __name__ == '__main__':
                 else:
                     celda_ref = serving_cell
                     print(json.dumps(serving_cell, indent=2))
+                time.sleep(interval)
+            elif 'LTE PHY Cell Search Measure:'in linea_decod and 'SCell' in linea_decod:
+                latitud,longitud,altitud = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
+                match = re.search('PCI' + r'\s+(\S*)', linea_decod)
+                if match:
+                    pci = int(match.group(1).replace(',',''))
+                match = re.search('RSRP/RSRQ/RSSI:' + r'\s+(\S*)', linea_decod)
+                if match:
+                    valores = re.findall(r'\((.*?)\)',linea_decod)
+                    valores = [float(x) for x in valores[0].split(', ')]
+                    rsrp = valores[0]
+                    rsrq = valores[1]
+                    rssi = valores[2]
+                serving_cell={
+                    'earfcn':0,
+                    'plmn':0,
+                    'pci': pci,
+                    'rsrp': rsrp,
+                    'rsrq': rsrq,
+                    'time': str(datetime.datetime.now()),
+                    'latitude': latitud, 'longitude': longitud, 'elevation': altitud}
+                if serving_cell['rsrp'] != 0 or serving_cell['pci'] != 0:
+                    celdas.append(serving_cell)
+                print(json.dumps(serving_cell, indent=2))
+                time.sleep(interval)
+
 
 
             else:
@@ -199,9 +228,8 @@ if __name__ == '__main__':
                             rssi = int(match.group(1))
                             if rssi < -130:
                                 print("Ausencia total de cobertura")
-                            else:
-                                interval_aux = interval
-                                interval = 0
+                                time.sleep(interval)
+
                     if len(celda_ref.keys()) > 0:
                         print(f"Volver a {celda_ref['latitude']},{celda_ref['longitude']}")
                     else:
@@ -211,15 +239,7 @@ if __name__ == '__main__':
                     interval = 0
 
 
-
-
-
-
-            time.sleep(interval)
-
-
-
-
+    #Fin de ejecucion
     except KeyboardInterrupt:
         proceso.terminate()
         stdout, stderr = proceso.communicate()
