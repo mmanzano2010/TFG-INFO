@@ -1,5 +1,6 @@
 '''Programa para analisis de las salidas del programa Scat'''
 
+import argparse
 import json
 import time
 import datetime
@@ -10,7 +11,7 @@ import funciones
 import lightgbm as lgb
 import pandas as pd
 import numpy as np
-import argparse
+
 
 
 MIN_LEVEL = -130
@@ -221,11 +222,16 @@ if __name__ == '__main__':
                     celda_ref = serving_cell
                     print(json.dumps(serving_cell, indent=2))
                 time.sleep(INTERVAL)
-            elif 'LTE PHY Cell Search Measure:'in linea_decod and 'SCell' in linea_decod:
+            elif 'LTE PHY Cell Search Measure:' in linea_decod and 'SCell' in linea_decod:
                 # Estas celdas se guardan para mejorar el aprendizaje,
                 # no se muestran ni intervienen en el calculo de intervalos,
                 # estas lineas tienen un formato diferente a las anteriores
                 latitud,longitud,altitud = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
+                earfcn = 0
+                pci = 0
+                plmn = 0
+                rsrp = 0.0
+                rsrq = 0.0
                 match = re.search('PCI' + r'\s+(\S*)', linea_decod)
                 if match:
                     pci = int(match.group(1).replace(',',''))
@@ -236,9 +242,9 @@ if __name__ == '__main__':
                     rsrp = valores[0]
                     rsrq = valores[1]
                     rssi = valores[2]
-                serving_cell={
-                    'earfcn':0,
-                    'plmn':0,
+                serving_cell = {
+                    'earfcn': 0,
+                    'plmn': 0,
                     'pci': pci,
                     'rsrp': rsrp,
                     'rsrq': rsrq,
