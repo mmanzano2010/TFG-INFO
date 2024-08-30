@@ -214,6 +214,8 @@ if __name__ == '__main__':
                     print(json.dumps(serving_cell, indent=2))
                 time.sleep(INTERVAL)
             elif 'LTE PHY Cell Search Measure:'in linea_decod and 'SCell' in linea_decod:
+                # Estas celdas se guardan para mejorar el aprendizaje,
+                # no se muestran ni intervienen en el calculo de intervalos
                 latitud,longitud,altitud = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
                 match = re.search('PCI' + r'\s+(\S*)', linea_decod)
                 if match:
@@ -254,7 +256,7 @@ if __name__ == '__main__':
                     else:
                         print("Buscar localizacion de referencia")
                 else:
-                    inerval_aux = INTERVAL
+                    INTERVAL_AUX = INTERVAL
                     INTERVAL = 0
 
 
