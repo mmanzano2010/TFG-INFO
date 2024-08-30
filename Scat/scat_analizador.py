@@ -55,11 +55,12 @@ def coger_datos_geo(localizacion_ruta_archivo):
     """ Funcion para coger los datos de geolocalizacion del archivo .gpx"""
     geoloc_data_str = funciones.leer_archivo_android(localizacion_ruta_archivo)
     gpx = gpxpy.parse(geoloc_data_str)
-    for track in gpx.tracks:
-        for segment in track.segments:
-            lat = segment.points[-1].latitude
-            long = segment.points[-1].longitude
-            altitud = segment.points[-1].elevation
+    last_track = gpx.tracks[-1]
+    last_segment = last_track.segments[-1]
+    last_point = last_segment.points[-1]
+    lat = last_point.latitude
+    long = last_point.longitude
+    altitud = last_point.elevation
     return lat,long,altitud
 def procesar_linea(linea_decod,coordenadas):
     """Funcion para procesar una linea de analisis de cobertura LTE"""
@@ -138,12 +139,19 @@ if __name__ == '__main__':
         print('Escaneando...')
         interval_aux = interval
         while True:
+            interval = interval_aux
+
             if len(celdas) > ciclos or interval >=9:
                 proceso.terminate()
+                time.sleep(1)
                 proceso = subprocess.Popen(comando, bufsize=1, stdout=subprocess.PIPE, pipesize=1, text=True)
                 print("REINICIO SCAT")
+                print(ciclos)
+                print(len(celdas))
+
                 ciclos += 50
-            interval = interval_aux
+                interval = 1
+                interval_aux = interval
             linea = proceso.stdout.readline()
             print(linea)
             linea_decod = linea.strip()
@@ -215,8 +223,7 @@ if __name__ == '__main__':
                     'latitude': latitud, 'longitude': longitud, 'elevation': altitud}
                 if serving_cell['rsrp'] != 0 or serving_cell['pci'] != 0:
                     celdas.append(serving_cell)
-                print(json.dumps(serving_cell, indent=2))
-                time.sleep(interval)
+                    print(json.dumps(serving_cell, indent=2))
 
 
 
