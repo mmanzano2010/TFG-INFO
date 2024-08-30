@@ -35,12 +35,13 @@ def train_model(parametros, datos):
     x_train = x_train.drop('rsrq',axis="columns")
     x_train = x_train.drop('pci',axis="columns")
     x_train = x_train.drop('plmn',axis="columns")
-    print(x_train)
+    # print(x_train)
     y_train = x_train.pop('rsrp')
     x_train = x_train.to_numpy()
     y_train = y_train.to_numpy()
     train_data = lgb.Dataset(x_train, label=y_train)
-
+    # Si el numero de celdas es suficiente se realiza validadcion cruzada,
+    # esta parte necesita scikit-learn
     if len(celdas_entrenamiento) > 15:
         cv_results = lgb.cv(parametros, train_data)
         best_num_boost_round = len(cv_results)
@@ -70,6 +71,7 @@ def procesar_linea(linea_a_decodificar, datos_geoloc):
     plmn = 0
     rsrp = 0.0
     rsrq = 0.0
+    # Busquerda de los datos en la linea
     match = re.search('EARFCN' + r'\s+(\S*)', linea_a_decodificar)
     if match:
         earfcn = int(match.group(1))
@@ -113,6 +115,7 @@ if __name__ == '__main__':
     modelo = args.modelo
     modelo_procesador = args.modelo
     interfaz = args.interfaz
+    # Busqueda lsusb
     bus_usb = funciones.get_interfaz_dispositivo(modelo)
     BUS = str(bus_usb[0]) + ":" + str(bus_usb[1])
     #Para archivo de guardado
@@ -146,6 +149,7 @@ if __name__ == '__main__':
         while True:
             INTERVAL = INTERVAL_AUX
 
+            # Reinicio de Scat de forma periodica para la obtencion de datos mas actualizados
             if len(celdas) > CICLOS or INTERVAL >=9:
                 proceso.terminate()
                 time.sleep(1)
@@ -156,8 +160,8 @@ if __name__ == '__main__':
                                            text=True
                 )
                 print("REINICIO SCAT")
-                print(CICLOS)
-                print(len(celdas))
+                # print(CICLOS)
+                # print(len(celdas))
 
                 CICLOS += 50
                 INTERVAL = 1
@@ -167,7 +171,8 @@ if __name__ == '__main__':
             linea_decod = linea.strip()
             # Si ya hay celdas entrenamos el modelo
 
-            # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui
+            # Buscamos con tecnología LTE, para otra tecnología cambiar a partir de aqui,
+            # esto comprueba que se haya detectado una celda LTE
             if 'LTE PHY Cell Info' in linea_decod and 'NCell' not in linea_decod:# Buscamos la celda servidora
                 coordenadas = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
                 serving_cell = procesar_linea(linea_decod,coordenadas)
@@ -175,8 +180,7 @@ if __name__ == '__main__':
                     t_modelo = train_model(params,
                                            celdas
                     )
-                # Deteccion de obstaculos grandes,
-                # es necesario al menos haber establecido un pequeño recorrido de referencia
+                # Calculo de intervalos con uso de modelo de AA
                 if len(celdas) > 10 and t_modelo:
                     data = pd.DataFrame([serving_cell])
                     data = data.drop(labels=['earfcn', 'pci', 'plmn', 'rsrp', 'rsrq', 'time'], axis="columns")
@@ -196,12 +200,16 @@ if __name__ == '__main__':
                         nuevo_intervalo = min(1, INTERVAL * 0.5)
                         INTERVAL = max(INTERVALO_MIN, nuevo_intervalo)
                         INTERVAL_AUX = INTERVAL
+                        # Deteccion de obstaculos grandes,
+                        # es necesario al menos haber establecido un pequeño recorrido de referencia
                         if abs(abs(y_pred) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR or abs(abs(celdas[-1]['rsrp']) - abs(serving_cell['rsrp'])) > DIFF_RSRP_EXTR:
                             print("Obstáculo detectado")
+                # Notificacion del nuevo intervalo de escaneo y guardado de datos para AA
                 print(f'Intervalo hasta el siguiente escaneo de {INTERVAL} segundos')
 
                 celdas.append(serving_cell)
 
+                # Casos de baja calidad de señal
                 if serving_cell['rsrp'] < MIN_LEVEL:
                     print("Baja calidad de señal")
                     if len(celda_ref.keys()) > 0:
@@ -215,7 +223,8 @@ if __name__ == '__main__':
                 time.sleep(INTERVAL)
             elif 'LTE PHY Cell Search Measure:'in linea_decod and 'SCell' in linea_decod:
                 # Estas celdas se guardan para mejorar el aprendizaje,
-                # no se muestran ni intervienen en el calculo de intervalos
+                # no se muestran ni intervienen en el calculo de intervalos,
+                # estas lineas tienen un formato diferente a las anteriores
                 latitud,longitud,altitud = coger_datos_geo(LOCALIZACION_RUTA_ARCHIVO)
                 match = re.search('PCI' + r'\s+(\S*)', linea_decod)
                 if match:
@@ -240,7 +249,7 @@ if __name__ == '__main__':
                     print(json.dumps(serving_cell, indent=2))
 
 
-
+            # El resto de tecnologias y estandares de momento no se analizan
             else:
                 if 'EDGE' in linea_decod or 'HSPA' in linea_decod:
                     if 'RSSI' in linea_decod:
@@ -248,6 +257,7 @@ if __name__ == '__main__':
                         if match:
                             rssi = int(match.group(1))
                             if rssi < -130:
+                                # Esto indicaria un aislamineto total de la red
                                 print("Ausencia total de cobertura")
                                 time.sleep(INTERVAL)
 
@@ -263,10 +273,11 @@ if __name__ == '__main__':
     #Fin de ejecucion
     except KeyboardInterrupt:
         proceso.terminate()
-        stdout, stderr = proceso.communicate()
+        # stdout, stderr = proceso.communicate()
         funciones.cerrar_app(APP_LOCALIZACION)
+        # Guardado de datos en archivo .json
         with open(f'{path_to_file}', 'w', encoding='utf-8') as archivo:
             archivo.write(json.dumps(celdas, indent=2))
             archivo.close()
         print("Tarea finalizada")
-        print(stdout)
+        # print(stdout)
