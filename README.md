@@ -5,8 +5,9 @@ Autor: Marcos Martínez
 ## Descripción
 Se trata de una herramienta para la automatización de escaneos para la medición de cobertura móvil 
 a través de dispositivos Android.  
-Esta herramienta permite realiar escaneos optimizando los intervalos entre los mismos 
+Esta herramienta permite realizar escaneos optimizando los intervalos entre los mismos 
 y creando archivos manejables para un uso más fácil.
+También contiene herramientas básicas para el análisis de los archivos.
 
 ## Requisitos 
 - [Network Signal Guru](https://www.qtrun.com/en/?page_id=34)
