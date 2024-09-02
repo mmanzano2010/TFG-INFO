@@ -13,6 +13,7 @@ y creando archivos manejables para un uso más fácil.
 - [Scat](https://github.com/fgsect/scat)
 - [GPSLogger](https://github.com/mendhak/gpslogger/tree/master)
 - [gpxpy](https://pypi.org/project/gpxpy/)
+- [scikit-learn](https://scikit-learn.org/stable/) para el uso de validación cruzada
 
 ## Modo de uso
 
